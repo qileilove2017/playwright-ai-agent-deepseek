@@ -28,7 +28,7 @@ await page.goto('https://www.baidu.com');
 ## 通过调用api 执行生成的脚本如下
 ```
 curl --request POST \
-  --url http://localhost:3030/run \
+  --url http://localhost:3030/api/run \
   --header 'Content-Type: application/json' \
   --header 'User-Agent: insomnia/11.0.0' \
   --data '{
