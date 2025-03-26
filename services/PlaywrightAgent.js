@@ -71,6 +71,71 @@ class PlaywrightAgent {
         }
     }
 
+    async initialize() {
+        if (!this.browser) {
+            this.browser = await chromium.launch({ headless: HeadLess });
+            this.context = await this.browser.newContext();
+        }
+    }
+
+    async analyzePage(url) {
+        try {
+            const page = await this.context.newPage();
+            await page.goto(url);
+
+            const analysis = await page.evaluate(() => {
+                // Get all interactive elements
+                const interactiveElements = [...document.querySelectorAll(
+                    'button, input, select, a, [role="button"], [role="link"], data-testid'
+                )].map(el => ({
+                    tag: el.tagName.toLowerCase(),
+                    type: el.type || null,
+                    id: el.id || null,
+                    text: el.textContent?.trim() || null,
+                    placeholder: el.placeholder || null,
+                    name: el.name || null,
+                    href: el.href || null,
+                    value: el.value || null,
+                    role: el.getAttribute('role') || null,
+                    classes: Array.from(el.classList).join(' '),
+                    isVisible: el.offsetParent !== null
+                }));
+
+                // Get form information
+                const forms = [...document.querySelectorAll('form')].map(form => ({
+                    id: form.id || null,
+                    action: form.action || null,
+                    method: form.method || null,
+                    elements: [...form.elements].map(el => ({
+                        tag: el.tagName.toLowerCase(),
+                        type: el.type || null,
+                        name: el.name || null,
+                        id: el.id || null
+                    }))
+                }));
+
+                return {
+                    title: document.title,
+                    url: window.location.href,
+                    interactiveElements,
+                    forms,
+                    timestamp: new Date().toISOString()
+                };
+            });
+
+            // Take a screenshot
+            const screenshotPath = path.join(__dirname, '..', config.SCREENSHOTS_DIR, `${Date.now()}.png`);
+            await page.screenshot({ path: screenshotPath, fullPage: true });
+            analysis.screenshotPath = screenshotPath;
+
+            await page.close();
+            return analysis;
+
+        } catch (error) {
+            throw new Error(`页面分析失败: ${error.message}`);
+        }
+    }
+
     async cleanup() {
         try {
             await this.context?.close();
