@@ -40,3 +40,18 @@ curl --request POST \
     "mode": "parallel"
 }'
 ```
+## 顺序测试
+
+```
+curl --request POST \
+  --url http://localhost:3030/api/run \
+  --header 'Content-Type: application/json' \
+  --header 'User-Agent: insomnia/11.0.0' \
+  --data '{
+    "scripts": [
+        "await page.goto('\''https://www.baidu.com'\''); await page.fill('\''#kw'\'', '\''test search 1'\''); await page.click('\''#su'\''); await page.waitForTimeout(2000); await page.screenshot({ path: `screenshots/result-${Date.now()}.png` }); checkResult = async (page) => { const content = await page.textContent('\''body'\''); return content.includes('\''test search 1'\''); };",
+        "await page.goto('\''https://www.baidu.com'\''); await page.fill('\''#kw'\'', '\''test search 2'\''); await page.click('\''#su'\''); await page.waitForTimeout(2000); await page.screenshot({ path: `screenshots/result-${Date.now()}.png` }); checkResult = async (page) => { const content = await page.textContent('\''body'\''); return content.includes('\''wrong content'\''); };"
+    ],
+    "mode": "sequential"
+}'
+```
