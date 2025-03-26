@@ -3,6 +3,7 @@
 ## 启动服务
 ```
 npm install
+npx playwright install chromium  
 
 npm run dev
 ```
