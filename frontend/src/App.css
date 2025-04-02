@@ -1,0 +1,15 @@
+.App {
+  padding: 20px 0;
+}
+
+.App-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+} 

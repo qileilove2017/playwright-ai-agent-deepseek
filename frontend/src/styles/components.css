@@ -1,0 +1,28 @@
+/* 脚本编辑器样式 */
+.script-editor .code-editor {
+  font-family: 'Consolas', Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.script-editor pre {
+  margin: 0;
+  max-height: 500px;
+  overflow: auto;
+}
+
+/* 执行结果样式 */
+.log-entry {
+  font-family: 'Consolas', Monaco, 'Courier New', monospace;
+  font-size: 12px;
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* 脚本模板样式 */
+.template-manager .list-group-item:hover {
+  background-color: #f8f9fa;
+} 

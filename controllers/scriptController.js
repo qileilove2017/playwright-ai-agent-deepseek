@@ -33,6 +33,12 @@ async function generateScript(req, res, next) {
                 success: true, 
                 data: { script } 
             });
+        } catch (error) {
+            // 更详细的错误信息
+            res.status(500).json({
+                success: false,
+                error: error.message || 'Failed to generate script'
+            });
         } finally {
             await agent.cleanup?.(); // Cleanup resources if method exists
         }

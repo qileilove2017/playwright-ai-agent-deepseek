@@ -29,10 +29,14 @@ class PlaywrightAgent {
         }
     }
 
-    async runScripts(scripts, mode = 'sequential') {
+    async runScripts(scripts, mode = 'sequential', authOptions = {}) {
         try {
-            this.browser = await chromium.launch({ headless: HeadLess });
-            this.context = await this.browser.newContext();
+            this.browser = await chromium.launch({ 
+                headless: config.headless === 'true' || config.headless === true 
+            });
+            
+            // 创建上下文时应用认证选项
+            this.context = await this.createContextWithAuth(authOptions);
 
             if (mode === 'parallel') {
                 return await Promise.all(scripts.map(script => this.executeScript(script)));
@@ -71,15 +75,43 @@ class PlaywrightAgent {
         }
     }
 
-    async initialize() {
+    async initialize(authOptions = {}) {
         if (!this.browser) {
-            this.browser = await chromium.launch({ headless: HeadLess });
-            this.context = await this.browser.newContext();
+            this.browser = await chromium.launch({ 
+                headless: config.headless === 'true' || config.headless === true 
+            });
+            this.context = await this.createContextWithAuth(authOptions);
         }
     }
 
-    async analyzePage(url) {
+    async createContextWithAuth(authOptions = {}) {
+        const contextOptions = {};
+        
+        // 处理 cookies
+        if (authOptions.cookies && authOptions.cookies.length > 0) {
+            contextOptions.cookies = authOptions.cookies;
+        }
+        
+        // 创建上下文
+        const context = await this.browser.newContext(contextOptions);
+        
+        // 处理 Bearer Token
+        if (authOptions.bearerToken) {
+            await context.setExtraHTTPHeaders({
+                'Authorization': `Bearer ${authOptions.bearerToken}`
+            });
+        }
+        
+        return context;
+    }
+
+    async analyzePage(url, authOptions = {}) {
         try {
+            // 如果没有初始化浏览器和上下文，则进行初始化
+            if (!this.browser || !this.context) {
+                await this.initialize(authOptions);
+            }
+            
             const page = await this.context.newPage();
             await page.goto(url);
 
@@ -143,6 +175,25 @@ class PlaywrightAgent {
         } catch (error) {
             console.error('Cleanup failed:', error);
         }
+    }
+    
+    // 辅助方法：从字符串创建 cookie 对象
+    static parseCookieString(cookieString, domain) {
+        if (!cookieString) return [];
+        
+        return cookieString.split(';')
+            .map(pair => {
+                const [name, value] = pair.trim().split('=');
+                if (!name || !value) return null;
+                
+                return {
+                    name,
+                    value,
+                    domain: domain || null,
+                    path: '/'
+                };
+            })
+            .filter(cookie => cookie !== null);
     }
 }
 
