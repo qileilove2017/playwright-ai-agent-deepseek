@@ -4,8 +4,8 @@ const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Create an axios instance with default configuration
 const axiosInstance = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // This helps with CORS for authenticated requests
+  baseURL: 'http://localhost:3000/api', // 确保这里是你的后端服务地址和端口
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -78,7 +78,8 @@ const api = {
     
     console.log('发送脚本执行请求:', payload);
     
-    const response = await axios.post(`${API_URL}/run`, payload);
+    // 将 axios.post 替换为 axiosInstance.post
+    const response = await axiosInstance.post(`/run`, payload);
     return response.data;
   },
   
@@ -129,7 +130,30 @@ const api = {
   saveScript: async (scriptData) => {
     // 这里可以添加模拟保存脚本逻辑
     return { success: true };
-  }
+  },
+  
+  // 项目相关API
+  createProject: (data) => axiosInstance.post('/projects', data),
+  getProjects: () => axiosInstance.get('/projects'),
+
+  // 测试用例相关API
+  createTestCase: (data) => axiosInstance.post('/test-cases', data),
+  getTestCases: (projectId) => {
+    const params = projectId ? { projectId } : {};
+    return axiosInstance.get('/test-cases', { params });
+  },
+  getTestCaseById: (id) => axiosInstance.get(`/test-cases/${id}`),
+  updateTestCase: (id, data) => axiosInstance.put(`/test-cases/${id}`, data),
+  deleteTestCase: (id) => axiosInstance.delete(`/test-cases/${id}`),
+
+  // 新增：通过提示词生成测试用例
+  generateTestCaseFromPrompt: (data) => axiosInstance.post('/generate-test-case-from-prompt', data),
+
+  // 新增：生成自动化代码
+  generateAutomationCode: (testCaseId, codeType) => axiosInstance.post(`/test-cases/${testCaseId}/generate`, { codeType }),
+
+  // 新增：执行自动化代码
+  executeAutomationCode: (testCaseId, codeType) => axiosInstance.post(`/test-cases/${testCaseId}/execute`, { codeType }),
 };
 
-export default api; 
+export default api;

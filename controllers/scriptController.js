@@ -1,5 +1,7 @@
 const PlaywrightAgent = require('../services/PlaywrightAgent');
 const { validationResult } = require('express-validator');
+const { generateAutomationCode } = require('../utils/scriptTestCase');
+const TestCase = require('../models/TestCase');
 
 /**
  * Generate script based on prompt
@@ -112,7 +114,109 @@ async function executeScripts(req, res, next) {
     }
 }
 
+async function generateAutomationCodeController(req, res, next) {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const { testCaseId, codeType } = req.body;
+
+        if (!testCaseId || !codeType) {
+            return res.status(400).json({
+                success: false,
+                error: 'testCaseId and codeType are required'
+            });
+        }
+
+        const testCase = await TestCase.findByPk(testCaseId);
+        if (!testCase) {
+            return res.status(404).json({
+                success: false,
+                error: 'Test Case not found'
+            });
+        }
+
+        if (!testCase.generatedCode) {
+            return res.status(400).json({
+                success: false,
+                error: 'No generated test case content available to generate automation code from.'
+            });
+        }
+
+        let updateField = '';
+
+        // Determine language and framework from codeType
+        let [framework, language] = codeType.split('-');
+        if (language === 'Js') language = 'JavaScript';
+        if (language === 'Py') language = 'Python';
+        if (language === 'Java') language = 'Java';
+
+        // Determine the field to update
+        switch (codeType) {
+            case 'Playwright-Js':
+                updateField = 'playwrightJsCode';
+                break;
+            case 'Playwright-Py':
+                updateField = 'playwrightPyCode';
+                break;
+            case 'WebDriver-Java':
+                updateField = 'webDriverJavaCode';
+                break;
+            case 'WebDriver-Py':
+                updateField = 'webDriverPyCode';
+                break;
+            default:
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid codeType provided'
+                });
+        }
+
+        // Check if automation code already exists in the database
+        // IMPORTANT: Ensure that if testCase[updateField] is true, it's treated as an empty string
+        let existingCode = testCase[updateField];
+        // Treat 'true' string or boolean true as empty string
+        if ((typeof existingCode === 'boolean' && existingCode === true) || (typeof existingCode === 'string' && existingCode.toLowerCase() === 'true')) {
+            existingCode = ''; // Treat true (boolean or string) as empty string
+        }
+
+        // If existingCode is not empty (and not true) and not just whitespace
+        if (existingCode && existingCode.trim()) {
+            return res.json({
+                success: true,
+                data: { [updateField]: existingCode }
+            });
+        }
+
+        // If code does not exist, generate it
+        let generatedAutomationCode = await generateAutomationCode(testCase.generatedCode, language, framework);
+
+        // Ensure generatedAutomationCode is a string before saving
+        if (typeof generatedAutomationCode !== 'string') {
+            generatedAutomationCode = String(generatedAutomationCode); // Convert to string
+        }
+
+        // Save the generated code to the database
+        testCase[updateField] = generatedAutomationCode;
+        await testCase.save();
+
+        res.json({
+            success: true,
+            data: { [updateField]: generatedAutomationCode }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     generateScript,
-    executeScripts
+    executeScripts,
+    generateAutomationCodeController
 };
